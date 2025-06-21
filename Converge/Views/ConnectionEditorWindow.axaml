@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Converge.Views.ConnectionEditorWindow"
+        Width="500" Height="740"
+        Title="Edit Connection"
+        WindowStartupLocation="CenterOwner">
+
+	<StackPanel Margin="20" Spacing="6">
+
+		<TextBlock Text="Connection Name"/>
+		<TextBox Text="{Binding Name, Mode=TwoWay}" />
+
+		<TextBlock Text="Host or IP"/>
+		<TextBox Text="{Binding Host, Mode=TwoWay}" />
+
+		<TextBlock Text="Port"/>
+		<TextBox Text="{Binding Port, Mode=TwoWay}" />
+
+		<TextBlock Text="Protocol"/>
+		<ComboBox SelectedItem="{Binding Protocol, Mode=TwoWay}">
+			<ComboBoxItem Content="SSH"/>
+			<ComboBoxItem Content="RDP"/>
+			<ComboBoxItem Content="VNC"/>
+		</ComboBox>
+
+		<TextBlock Text="Username"/>
+		<TextBox Text="{Binding Username, Mode=TwoWay}" />
+
+		<TextBlock Text="Authentication Type (SSH only)"/>
+		<ComboBox SelectedItem="{Binding AuthType, Mode=TwoWay}">
+			<ComboBoxItem Content="Password"/>
+			<ComboBoxItem Content="Key File"/>
+		</ComboBox>
+
+		<StackPanel Orientation="Vertical" IsVisible="{Binding IsPasswordAuth}">
+			<TextBlock Text="Password"/>
+			<TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="•"/>
+		</StackPanel>
+
+		<StackPanel Orientation="Vertical" IsVisible="{Binding IsKeyAuth}">
+			<TextBlock Text="Private Key File"/>
+			<StackPanel Orientation="Horizontal" Spacing="6">
+				<TextBox Text="{Binding KeyFilePath, Mode=TwoWay}" Width="320"/>
+				<Button Content="Browse..." Command="{Binding BrowseKeyFileCommand}"/>
+			</StackPanel>
+			<TextBlock Text="Passphrase (if any)"/>
+			<TextBox Text="{Binding KeyPassphrase, Mode=TwoWay}" PasswordChar="•"/>
+		</StackPanel>
+
+		<TextBlock Text="Notes"/>
+		<ScrollViewer Height="100" VerticalScrollBarVisibility="Auto">
+			<TextBox Text="{Binding Notes, Mode=TwoWay}" AcceptsReturn="True" TextWrapping="Wrap"/>
+		</ScrollViewer>
+
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,20,0,0">
+			<Button Content="Save" Command="{Binding SaveCommand}" IsDefault="True"/>
+			<Button x:Name="CancelButton" Content="Cancel" IsCancel="True"/>
+		</StackPanel>
+
+	</StackPanel>
+</Window>

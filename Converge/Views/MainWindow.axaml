@@ -1,20 +1,101 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Converge.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:d="https://github.com/avaloniaui/designer"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d"
         x:Class="Converge.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Converge">
+        Width="1280" Height="800"
+        Title="Converge: Version 0.0.0 Release: 0.1 Alpha">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+	<DockPanel>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+		<!-- Menu Bar -->
+		<Menu DockPanel.Dock="Top">
+			<MenuItem Header="_File">
+				<MenuItem Header="New Connection" ToolTip.Tip="Create a new SSH, RDP, or VNC connection."/>
+				<MenuItem Header="Edit Connection" ToolTip.Tip="Edit the selected connection."/>
+				<MenuItem Header="Connect" ToolTip.Tip="Connect to the selected host."/>
+				<MenuItem Header="Disconnect" ToolTip.Tip="Disconnect the active session."/>
+				<Separator/>
+				<MenuItem Header="Close" ToolTip.Tip="Close the application."/>
+			</MenuItem>
+			<MenuItem Header="_Help">
+				<MenuItem Header="About" ToolTip.Tip="About this application."/>
+				<MenuItem Header="Help" ToolTip.Tip="View help and documentation."/>
+			</MenuItem>
+		</Menu>
 
+		<!-- Toolbar -->
+		<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4" Spacing="6">
+			<Button ToolTip.Tip="Create a new connection" Click="NewConnection_Click">
+				<StackPanel Orientation="Horizontal" Spacing="4">
+					<TextBlock Text="🞧"/>
+					<TextBlock Text="New"/>
+				</StackPanel>
+			</Button>
+			<Button ToolTip.Tip="Edit the selected connection">
+				<StackPanel Orientation="Horizontal" Spacing="4">
+					<TextBlock Text="✎"/>
+					<TextBlock Text="Edit"/>
+				</StackPanel>
+			</Button>
+			<Button ToolTip.Tip="Connect to the selected host">
+				<StackPanel Orientation="Horizontal" Spacing="4">
+					<TextBlock Text="🔌"/>
+					<TextBlock Text="Connect"/>
+				</StackPanel>
+			</Button>
+			<Button ToolTip.Tip="Disconnect the active session">
+				<StackPanel Orientation="Horizontal" Spacing="4">
+					<TextBlock Text="❌"/>
+					<TextBlock Text="Disconnect"/>
+				</StackPanel>
+			</Button>
+			<Button ToolTip.Tip="Pop out the selected session into its own window">
+				<StackPanel Orientation="Horizontal" Spacing="4">
+					<TextBlock Text="📤"/>
+					<TextBlock Text="Pop Out"/>
+				</StackPanel>
+			</Button>
+			<Rectangle Width="16"/>
+			<TextBox Width="200" Watermark="Type to filter" ToolTip.Tip="Filter the connection list"/>
+		</StackPanel>
+
+		<!-- Status Bar -->
+		<Border DockPanel.Dock="Bottom" Background="#EEE" Padding="4">
+			<TextBlock Text="Status Bar"/>
+		</Border>
+
+		<!-- Main Content -->
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="250"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+
+			<!-- Left Panel: Connection Tree -->
+			<TreeView Grid.Column="0" Margin="4">
+				<TreeViewItem Header="DevOps"/>
+				<TreeViewItem Header="Personal Servers">
+					<TreeViewItem Header="File Server (192.168.1.1)"/>
+					<TreeViewItem Header="Mail Server (https://quickmail.com)"/>
+				</TreeViewItem>
+				<TreeViewItem Header="Clients"/>
+			</TreeView>
+
+			<!-- Right Panel: Tab Area -->
+			<TabControl Grid.Column="1" Margin="4">
+				<TabItem Header="SSH: Server-1">
+					<TextBlock Text="SSH session content goes here."/>
+				</TabItem>
+				<TabItem Header="RDP: 192.168.1.1">
+					<TextBlock Text="RDP session content goes here."/>
+				</TabItem>
+				<TabItem Header="VNC: 2001:0db8:85a3::">
+					<TextBlock Text="VNC session content goes here."/>
+				</TabItem>
+			</TabControl>
+
+		</Grid>
+	</DockPanel>
 </Window>
