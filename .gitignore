@@ -1,0 +1,41 @@
+# Converge - .NET + Avalonia + Visual Studio
+
+# Visual Studio user-specific files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+out/
+
+# Avalonia-generated files
+*.axaml.cs
+
+# NuGet packages and cache
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# Logs and diagnostics
+*.log
+
+# OS junk files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Temporary or backup files
+*.tmp
+*.bak
+*.swp
+*.orig
+
+

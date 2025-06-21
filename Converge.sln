@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36203.30 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Converge", "Converge\Converge.csproj", "{A99D4B2B-94AA-4491-B038-1608E0F65397}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A99D4B2B-94AA-4491-B038-1608E0F65397}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A99D4B2B-94AA-4491-B038-1608E0F65397}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A99D4B2B-94AA-4491-B038-1608E0F65397}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A99D4B2B-94AA-4491-B038-1608E0F65397}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {68CBBF5B-B124-4B9D-8EDE-DD71BB772564}
+	EndGlobalSection
+EndGlobal
