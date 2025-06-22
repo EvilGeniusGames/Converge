@@ -29,12 +29,17 @@
 			<IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
 			<PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
 		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.6" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="app.rc">
 			<SubType>Designer</SubType>
 		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Converge.data\Converge.Data.csproj" />
 	</ItemGroup>
 
 
