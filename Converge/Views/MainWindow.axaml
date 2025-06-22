@@ -74,26 +74,12 @@
 			</Grid.ColumnDefinitions>
 
 			<!-- Left Panel: Connection Tree -->
-			<TreeView Grid.Column="0" Margin="4">
-				<TreeViewItem Header="DevOps"/>
-				<TreeViewItem Header="Personal Servers">
-					<TreeViewItem Header="File Server (192.168.1.1)"/>
-					<TreeViewItem Header="Mail Server (https://quickmail.com)"/>
-				</TreeViewItem>
-				<TreeViewItem Header="Clients"/>
+			<TreeView x:Name="ConnectionTreeView" Margin="4">
+				<!--added programtically in code-behind-->
 			</TreeView>
 
 			<!-- Right Panel: Tab Area -->
-			<TabControl Grid.Column="1" Margin="4">
-				<TabItem Header="SSH: Server-1">
-					<TextBlock Text="SSH session content goes here."/>
-				</TabItem>
-				<TabItem Header="RDP: 192.168.1.1">
-					<TextBlock Text="RDP session content goes here."/>
-				</TabItem>
-				<TabItem Header="VNC: 2001:0db8:85a3::">
-					<TextBlock Text="VNC session content goes here."/>
-				</TabItem>
+			<TabControl x:Name="Connections" Grid.Column="1" Margin="4">
 			</TabControl>
 
 		</Grid>

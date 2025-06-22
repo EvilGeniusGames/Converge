@@ -21,6 +21,21 @@ namespace Converge
 
             Services = services.BuildServiceProvider();
 
+            // Run migrations at startup
+            using (var scope = Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ConvergeDbContext>();
+                try
+                {
+                    db.Database.Migrate();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Migration failed: " + ex);
+                }
+                System.Diagnostics.Debug.WriteLine($"Working Directory: {Environment.CurrentDirectory}");
+            }
+
             BuildAvaloniaApp()
                 .StartWithClassicDesktopLifetime(args);
         }
