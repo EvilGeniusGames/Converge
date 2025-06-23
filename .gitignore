@@ -12,9 +12,6 @@ bin/
 obj/
 out/
 
-# Avalonia-generated files
-*.axaml.cs
-
 # NuGet packages and cache
 *.nupkg
 *.snupkg
