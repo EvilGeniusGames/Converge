@@ -20,7 +20,7 @@ namespace Converge.Views
           
         }
 
-        protected override void OnOpened(EventArgs e)
+        protected override async void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
 
@@ -33,6 +33,8 @@ namespace Converge.Views
             {
                 this.Icon = new WindowIcon("avares://Converge/Assets/icon.png");
             }
+
+            await VerifyOrCreateVaultAsync();
         }
 
         private void NewConnection_Click(object? sender, RoutedEventArgs e)
@@ -106,5 +108,56 @@ namespace Converge.Views
 
             await dialog.ShowDialog(this);
         }
+
+        private async Task<bool> VerifyOrCreateVaultAsync()
+        {
+            var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+            var saltSetting = db.SiteSettings.FirstOrDefault(s => s.Key == "EncryptionSalt");
+
+            if (saltSetting == null)
+            {
+                var create = new CreatePasswordWindow(requireOldPassword: false);
+                var result = await create.ShowDialog<bool?>(this);
+
+                if (result != true || string.IsNullOrWhiteSpace(create.EnteredPassword))
+                {
+                    Environment.Exit(0);
+                }
+
+                var salt = CryptoUtils.GenerateSalt();
+                db.SiteSettings.Add(new SiteSetting { Key = "EncryptionSalt", Value = salt });
+
+                var derivedKey = CryptoUtils.DeriveKey(create.EnteredPassword, salt);
+                CryptoVault.Key = derivedKey;
+
+                var testValue = CryptoUtils.Encrypt("CONVERGE-TEST", derivedKey);
+                db.SiteSettings.Add(new SiteSetting { Key = "EncryptionCheck", Value = testValue });
+
+                db.SaveChanges();
+            }
+            else
+            {
+                var enter = new EnterPasswordWindow();
+                var result = await enter.ShowDialog<bool?>(this);
+
+                if (result != true || string.IsNullOrWhiteSpace(enter.EnteredPassword))
+                {
+                    Environment.Exit(0);
+                }
+
+                var derivedKey = CryptoUtils.DeriveKey(enter.EnteredPassword, saltSetting.Value);
+
+                var check = db.SiteSettings.FirstOrDefault(s => s.Key == "EncryptionCheck");
+                if (check == null || CryptoUtils.Decrypt(check.Value, derivedKey) != "CONVERGE-TEST")
+                {
+                    Environment.Exit(0);
+                }
+
+                CryptoVault.Key = derivedKey;
+            }
+
+            return true;
+        }
+
     }
 }
