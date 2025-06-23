@@ -16,8 +16,10 @@
 				<MenuItem Header="Edit Connection" ToolTip.Tip="Edit the selected connection."/>
 				<MenuItem Header="Connect" ToolTip.Tip="Connect to the selected host."/>
 				<MenuItem Header="Disconnect" ToolTip.Tip="Disconnect the active session."/>
+				<MenuItem x:Name="ChangePasswordMenuItem" Header="Change Password" ToolTip.Tip="Change you Encyption Password" Click="ChangePasswordMenuItem_Click"/>
 				<Separator/>
-				<MenuItem Header="Close" ToolTip.Tip="Close the application."/>
+				<MenuItem Header="Close" ToolTip.Tip="Close the application." Click="CloseApplicationMenuItem_Click"/>
+
 			</MenuItem>
 			<MenuItem Header="_Help">
 				<MenuItem Header="About" ToolTip.Tip="About this application."/>
@@ -49,12 +51,6 @@
 				<StackPanel Orientation="Horizontal" Spacing="4">
 					<TextBlock Text="❌"/>
 					<TextBlock Text="Disconnect"/>
-				</StackPanel>
-			</Button>
-			<Button ToolTip.Tip="Pop out the selected session into its own window">
-				<StackPanel Orientation="Horizontal" Spacing="4">
-					<TextBlock Text="📤"/>
-					<TextBlock Text="Pop Out"/>
 				</StackPanel>
 			</Button>
 			<Rectangle Width="16"/>

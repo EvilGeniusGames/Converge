@@ -17,10 +17,16 @@ namespace Converge.Views
         public MainWindow()
         {
             InitializeComponent();
+          
+        }
+
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
 
             if (OperatingSystem.IsWindows())
             {
-                using var stream = AssetLoader.Open(new Uri("avares://Converge/Assets/icon.ico"));
+                using var stream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Converge/Assets/icon.ico"));
                 this.Icon = new WindowIcon(stream);
             }
             else
