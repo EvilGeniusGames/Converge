@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Converge.Data.Migrations
 {
     [DbContext(typeof(ConvergeDbContext))]
-    [Migration("20250622195911_Initial")]
+    [Migration("20250623223104_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -84,6 +84,9 @@ namespace Converge.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("ParentId")
                         .HasColumnType("INTEGER");
 
@@ -116,7 +119,7 @@ namespace Converge.Data.Migrations
             modelBuilder.Entity("Converge.Data.Connection", b =>
                 {
                     b.HasOne("Converge.Data.Folder", "Folder")
-                        .WithMany()
+                        .WithMany("Connections")
                         .HasForeignKey("FolderId");
 
                     b.Navigation("Folder");
@@ -135,6 +138,8 @@ namespace Converge.Data.Migrations
             modelBuilder.Entity("Converge.Data.Folder", b =>
                 {
                     b.Navigation("Children");
+
+                    b.Navigation("Connections");
                 });
 #pragma warning restore 612, 618
         }

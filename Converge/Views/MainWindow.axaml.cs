@@ -26,7 +26,7 @@ namespace Converge.Views
         protected override async void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-
+            // Set the window icon based on the operating system
             if (OperatingSystem.IsWindows())
             {
                 using var stream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Converge/Assets/icon.ico"));
@@ -36,9 +36,19 @@ namespace Converge.Views
             {
                 this.Icon = new WindowIcon("avares://Converge/Assets/icon.png");
             }
+
+            // Ensure the database is migrated and the vault is verified or created
             var db = Program.Services.GetRequiredService<ConvergeDbContext>();
             db.Database.Migrate();
+
+            // Verify or create the vault
             await VerifyOrCreateVaultAsync();
+
+            // Load the connections into the view model
+            if (DataContext is MainWindowViewModel vm)
+            {
+                await vm.LoadConnectionsAsync(db);
+            }
         }
 
         private async Task ReencryptStoredConnectionPasswordsAsync(string oldPassword, string newPassword)
