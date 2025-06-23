@@ -61,23 +61,26 @@
 		<Border DockPanel.Dock="Bottom" Background="#EEE" Padding="4">
 			<TextBlock Text="Status Bar"/>
 		</Border>
-
 		<!-- Main Content -->
-		<Grid>
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="250"/>
-				<ColumnDefinition Width="*"/>
-			</Grid.ColumnDefinitions>
+		<SplitView x:Name="MainSplitView"
+				   IsPaneOpen="{Binding IsPaneOpen, Mode=TwoWay}"
+				   DisplayMode="CompactInline"
+				   CompactPaneLength="48"
+				   OpenPaneLength="250">
 
-			<!-- Left Panel: Connection Tree -->
-			<TreeView x:Name="ConnectionTreeView" Margin="4">
-				<!--added programtically in code-behind-->
-			</TreeView>
+			<SplitView.Pane>
+				<StackPanel>
+					<Button Command="{Binding TogglePaneCommand}"
+							Content="☰"
+							Width="32" Height="32" Margin="4"/>
+					<TreeView x:Name="ConnectionTreeView" Margin="4"/>
+				</StackPanel>
+			</SplitView.Pane>
 
-			<!-- Right Panel: Tab Area -->
-			<TabControl x:Name="Connections" Grid.Column="1" Margin="4">
-			</TabControl>
-
-		</Grid>
+			<SplitView.Content>
+				<TabControl x:Name="Connections" Margin="4"/>
+			</SplitView.Content>
+			
+		</SplitView>
 	</DockPanel>
 </Window>

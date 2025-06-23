@@ -7,11 +7,17 @@ namespace Converge.Views;
 public partial class CreatePasswordWindow : Window
 {
     public string? EnteredPassword { get; private set; }
+    public string? OldPassword { get; private set; }
+
+    private readonly bool _requireOldPassword;
 
     public CreatePasswordWindow(bool requireOldPassword)
     {
         InitializeComponent();
-
+        // store the requirement for old password
+        _requireOldPassword = requireOldPassword;
+        
+        // password box is only visible if old password is required
         this.FindControl<TextBox>("PasswordBox").IsVisible = requireOldPassword;
         this.FindControl<TextBlock>("ErrorText").Text = "";
 
@@ -38,6 +44,11 @@ public partial class CreatePasswordWindow : Window
         {
             errorText.Text = "Passwords do not match.";
             return;
+        }
+
+        if (_requireOldPassword)
+        {
+            OldPassword = PasswordBox.Text;
         }
 
         EnteredPassword = pass1;

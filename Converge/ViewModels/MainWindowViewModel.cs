@@ -1,7 +1,16 @@
-﻿namespace Converge.ViewModels
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+namespace Converge.ViewModels;
+
+public partial class MainWindowViewModel : ObservableObject
 {
-    public partial class MainWindowViewModel : ViewModelBase
+    [ObservableProperty]
+    private bool isPaneOpen = true;
+
+    [RelayCommand]
+    private void TogglePane()
     {
-        public string Greeting { get; } = "Welcome to Converge!";
+        IsPaneOpen = !IsPaneOpen;
     }
 }
