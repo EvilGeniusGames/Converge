@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="https://github.com/avaloniaui/designer"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-		xmlns:local="clr-namespace:Converge.Models"
+        xmlns:local="clr-namespace:Converge.Models"
         mc:Ignorable="d"
         x:Class="Converge.Views.MainWindow"
         Width="1280" Height="800"
@@ -13,14 +13,20 @@
 		<!-- Menu Bar -->
 		<Menu DockPanel.Dock="Top">
 			<MenuItem Header="_File">
-				<MenuItem Header="New Connection" ToolTip.Tip="Create a new SSH, RDP, or VNC connection."/>
-				<MenuItem Header="Edit Connection" ToolTip.Tip="Edit the selected connection."/>
+				<MenuItem Header="New Connection" ToolTip.Tip="Create a new SSH, RDP, or VNC connection."
+                          Click="NewConnection_Click"/>
+				<MenuItem Header="Edit Connection" ToolTip.Tip="Edit the selected connection."
+                          Click="EditConnection_Click"/>
+				<Separator/>
 				<MenuItem Header="Connect" ToolTip.Tip="Connect to the selected host."/>
 				<MenuItem Header="Disconnect" ToolTip.Tip="Disconnect the active session."/>
-				<MenuItem x:Name="ChangePasswordMenuItem" Header="Change Password" ToolTip.Tip="Change you Encyption Password" Click="ChangePasswordMenuItem_Click"/>
+				<Separator/>
+				<MenuItem Header="Create Folder" ToolTip.Tip="Create a new folder." Click="CreateFolder_Click"/>
+				<MenuItem Header="Delete Folder" ToolTip.Tip="Delete the selected folder." Click="DeleteFolder_Click"/>
+				<Separator/>
+				<MenuItem Header="Change Password" ToolTip.Tip="Change you Encyption Password" Click="ChangePasswordMenuItem_Click"/>
 				<Separator/>
 				<MenuItem Header="Close" ToolTip.Tip="Close the application." Click="CloseApplicationMenuItem_Click"/>
-
 			</MenuItem>
 			<MenuItem Header="_Help">
 				<MenuItem Header="About" ToolTip.Tip="About this application."/>
@@ -36,7 +42,7 @@
 					<TextBlock Text="New"/>
 				</StackPanel>
 			</Button>
-			<Button ToolTip.Tip="Edit the selected connection">
+			<Button ToolTip.Tip="Edit the selected connection" Click="EditConnection_Click">
 				<StackPanel Orientation="Horizontal" Spacing="4">
 					<TextBlock Text="✎"/>
 					<TextBlock Text="Edit"/>
@@ -62,33 +68,74 @@
 		<Border DockPanel.Dock="Bottom" Background="#EEE" Padding="4">
 			<TextBlock Text="Status Bar"/>
 		</Border>
-		<!-- Main Content -->
-		<SplitView x:Name="MainSplitView"
-				   IsPaneOpen="{Binding IsPaneOpen, Mode=TwoWay}"
-				   DisplayMode="CompactInline"
-				   CompactPaneLength="40"
-				   OpenPaneLength="250">
 
-			<SplitView.Pane>
-				<StackPanel>
-					<Button Command="{Binding TogglePaneCommand}"
+		<!-- Main Content Grid -->
+		<Grid x:Name="MainLayoutGrid">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="{Binding LeftPaneWidth}" MinWidth="42"/>
+				<ColumnDefinition Width="2"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+
+			<!-- Left panel -->
+			<StackPanel Grid.Column="0" Background="#EEE">
+				<Grid x:Name="FilterRow" Margin="4" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+					<Button Grid.Column="0"
+							Command="{Binding TogglePaneCommand}"
 							Content="☰"
-							Width="32" Height="32" Margin="4"/>
-					<TreeView ItemsSource="{Binding ConnectionTreeItems}" Margin="4">
+							Width="32" Height="32"/>
+
+					<TextBox x:Name="FilterBox"
+							 Grid.Column="1"
+							 Watermark="Type to Filter"
+							 ToolTip.Tip="Filter connections"
+							 VerticalAlignment="Center"
+							 Margin="4,0"/>
+
+					<Button x:Name="ClearFilterButton"
+							Grid.Column="2"
+							Width="24"
+							Height="24"
+							Padding="0"
+							ToolTip.Tip="Clear filter"
+							Click="ClearFilter_Click">
+						<TextBlock Text="✕"
+								   HorizontalAlignment="Center"
+								   VerticalAlignment="Center"/>
+					</Button>
+				</Grid>
+
+				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+					<TreeView ItemsSource="{Binding ConnectionTreeItems}"
+							  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+							  Margin="4">
 						<TreeView.ItemTemplate>
 							<TreeDataTemplate DataType="local:ConnectionTreeItem" ItemsSource="{Binding Children}">
-								<TextBlock Text="{Binding Name}" />
+								<Border Padding="0,0,0,0" Height="28" VerticalAlignment="Center">
+									<TextBlock Text="{Binding Name}"
+											   TextTrimming="CharacterEllipsis"
+											   TextWrapping="NoWrap"
+											   VerticalAlignment="Center"
+											   MaxWidth="{Binding RelativeSource={RelativeSource AncestorType=TreeView}, Path=ActualWidth}" />
+								</Border>
 							</TreeDataTemplate>
 						</TreeView.ItemTemplate>
 					</TreeView>
+				</ScrollViewer>
+			</StackPanel>
 
-				</StackPanel>
-			</SplitView.Pane>
 
-			<SplitView.Content>
-				<TabControl x:Name="Connections" Margin="4"/>
-			</SplitView.Content>
-			
-		</SplitView>
+			<!-- Draggable splitter -->
+			<GridSplitter Grid.Column="1"
+                          Width="5"
+                          Background="Gray"
+                          ShowsPreview="True"
+                          ResizeDirection="Columns"
+                          HorizontalAlignment="Stretch"/>
+
+			<!-- Right panel -->
+			<TabControl x:Name="Connections" Grid.Column="2" Margin="4"/>
+		</Grid>
+
 	</DockPanel>
 </Window>

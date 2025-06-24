@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Avalonia.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Converge.Data;
 using Converge.Models;
@@ -14,11 +15,35 @@ public partial class MainWindowViewModel : ObservableObject
 {
     [ObservableProperty]
     private bool isPaneOpen = true;
+    [ObservableProperty]
+    private ConnectionTreeItem? selectedItem;
+
+    private double _lastExpandedWidth = 250; // Default starting width
+
+    [ObservableProperty]
+    private GridLength leftPaneWidth = new GridLength(250);
 
     [RelayCommand]
     private void TogglePane()
     {
-        IsPaneOpen = !IsPaneOpen;
+        if (IsPaneOpen)
+        {
+            _lastExpandedWidth = LeftPaneWidth.Value;
+            LeftPaneWidth = new GridLength(42); // Collapsed bar width
+            IsPaneOpen = false;
+        }
+        else
+        {
+            LeftPaneWidth = new GridLength(_lastExpandedWidth);
+            IsPaneOpen = true;
+        }
+    }
+    partial void OnLeftPaneWidthChanged(GridLength value)
+    {
+        if (IsPaneOpen && value.Value > 42)
+        {
+            _lastExpandedWidth = value.Value;
+        }
     }
 
     public ObservableCollection<ConnectionTreeItem> ConnectionTreeItems { get; } = new();
@@ -82,5 +107,10 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         return node;
+    }
+    public void UpdateLastExpandedWidth(double newWidth)
+    {
+        if (newWidth > 42)
+            _lastExpandedWidth = newWidth;
     }
 }

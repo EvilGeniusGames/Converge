@@ -2,15 +2,17 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
+using Avalonia.Reactive;
 using Converge.Data;
 using Converge.Data.Services;
+using Converge.Models;
+using Converge.ViewModels;
 using Converge.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Converge.ViewModels;
 
 namespace Converge.Views
 {
@@ -21,12 +23,14 @@ namespace Converge.Views
             InitializeComponent();
             DataContext = new MainWindowViewModel();
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            this.Closing += OnWindowClosing;
         }
 
         protected override async void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-            // Set the window icon based on the operating system
+
+            // Set window icon
             if (OperatingSystem.IsWindows())
             {
                 using var stream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Converge/Assets/icon.ico"));
@@ -37,18 +41,54 @@ namespace Converge.Views
                 this.Icon = new WindowIcon("avares://Converge/Assets/icon.png");
             }
 
-            // Ensure the database is migrated and the vault is verified or created
+            // Ensure DB and vault
             var db = Program.Services.GetRequiredService<ConvergeDbContext>();
             db.Database.Migrate();
-
-            // Verify or create the vault
             await VerifyOrCreateVaultAsync();
 
-            // Load the connections into the view model
-            if (DataContext is MainWindowViewModel vm)
+            // Get ViewModel early
+            var vm = DataContext as MainWindowViewModel;
+
+            // Load width from settings
+            var setting = db.SiteSettings.FirstOrDefault(s => s.Key == "LastPaneWidth");
+            if (setting != null && double.TryParse(setting.Value, out var storedWidth) && storedWidth > 42)
+            {
+                vm!.LeftPaneWidth = new GridLength(storedWidth);
+            }
+
+            // Load connections
+            if (vm != null)
             {
                 await vm.LoadConnectionsAsync(db);
             }
+
+            var grid = this.FindControl<Grid>("MainLayoutGrid");
+            var leftColumn = grid.ColumnDefinitions[0];
+
+            
+
+            double lastKnownWidth = -1;
+
+            grid.LayoutUpdated += (_, _) =>
+            {
+                var currentWidth = leftColumn.ActualWidth;
+
+                if (currentWidth != lastKnownWidth)
+                {
+                    lastKnownWidth = currentWidth;
+
+                    // Update width tracking
+                    if (vm?.IsPaneOpen == true)
+                    {
+                        vm.LeftPaneWidth = new GridLength(currentWidth);
+                        vm.UpdateLastExpandedWidth(currentWidth);
+                    }
+
+                    // Show/hide filter row
+                    this.FindControl<TextBox>("FilterBox").IsVisible = leftColumn.ActualWidth > 120;
+                    this.FindControl<Button>("ClearFilterButton").IsVisible = leftColumn.ActualWidth > 120;
+                }
+            };
         }
 
         private async Task ReencryptStoredConnectionPasswordsAsync(string oldPassword, string newPassword)
@@ -97,11 +137,45 @@ namespace Converge.Views
             CryptoVault.Key = newKey;
         }
 
-
-        private void NewConnection_Click(object? sender, RoutedEventArgs e)
+        private async void NewConnection_Click(object? sender, RoutedEventArgs e)
         {
             var editor = new ConnectionEditorWindow();
-            editor.ShowDialog(this);
+            var result = await editor.ShowDialog<Connection?>(this);
+
+            if (result != null && DataContext is MainWindowViewModel vm)
+            {
+                result.LastUpdated = DateTime.UtcNow;
+
+                // Add to DB
+                var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+                db.Connections.Add(result);
+                await db.SaveChangesAsync();
+
+                // Refresh Tree
+                await vm.LoadConnectionsAsync(db);
+            }
+        }
+
+        private async void EditConnection_Click(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainWindowViewModel vm &&
+                vm.SelectedItem?.Connection is Connection original)
+            {
+                var editor = new ConnectionEditorWindow(original);
+                var result = await editor.ShowDialog<Connection?>(this);
+
+                if (result != null)
+                {
+                    result.Id = original.Id;
+                    result.LastUpdated = DateTime.UtcNow;
+
+                    var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+                    db.Entry(original).CurrentValues.SetValues(result);
+                    await db.SaveChangesAsync();
+
+                    await vm.LoadConnectionsAsync(db);
+                }
+            }
         }
 
         private void CloseApplicationMenuItem_Click(object? sender, RoutedEventArgs e)
@@ -221,6 +295,42 @@ namespace Converge.Views
             }
 
             return true;
+        }
+
+        private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+                var width = vm.LeftPaneWidth.Value.ToString();
+
+                var existing = db.SiteSettings.FirstOrDefault(s => s.Key == "LastPaneWidth");
+                if (existing != null)
+                {
+                    existing.Value = width;
+                }
+                else
+                {
+                    db.SiteSettings.Add(new SiteSetting { Key = "LastPaneWidth", Value = width });
+                }
+
+                db.SaveChanges();
+            }
+        }
+
+        private void CreateFolder_Click(object? sender, RoutedEventArgs e)
+        {
+            // TODO: Prompt for folder name and add to DB
+        }
+
+        private void DeleteFolder_Click(object? sender, RoutedEventArgs e)
+        {
+            // TODO: Confirm and delete selected folder
+        }
+
+        private void ClearFilter_Click(object? sender, RoutedEventArgs e)
+        {
+            this.FindControl<TextBox>("FilterBox").Text = string.Empty;
         }
 
     }
