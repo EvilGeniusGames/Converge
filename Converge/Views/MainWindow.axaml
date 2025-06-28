@@ -122,10 +122,13 @@
 				</Grid>
 
 				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-					<TreeView ItemsSource="{Binding ConnectionTreeItems}"
+					<TreeView x:Name="ConnectionsTreeView"
+							  ItemsSource="{Binding ConnectionTreeItems}"
 							  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+							  PointerPressed="TreeView_PointerPressed"
 							  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 							  Margin="4">
+
 						<TreeView.ItemTemplate>
 							<TreeDataTemplate DataType="local:ConnectionTreeItem" ItemsSource="{Binding Children}">
 								<StackPanel Orientation="Horizontal" Margin="0" Spacing="4" VerticalAlignment="Center">

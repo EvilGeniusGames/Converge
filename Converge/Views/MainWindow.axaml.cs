@@ -1,9 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform;
 using Avalonia.Reactive;
+using Avalonia.VisualTree;
 using Converge.Data;
 using Converge.Data.Services;
 using Converge.Models;
@@ -11,20 +13,42 @@ using Converge.ViewModels;
 using Converge.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Org.BouncyCastle.Crmf;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Converge.Views
 {
+    // TODO: Implement drag-and-drop in the TreeView to support moving connections and folders.
+    //       - Enable AllowDrop on the TreeView control
+     //       - Track dragged item via PointerPressed or DragStart
+     //       - Handle Drop to detect target folder
+     //       - For connections: update FolderId and Order
+     //       - For folders: update ParentId and Order
+     //       - Save changes and refresh ConnectionTreeItems
+     //       - Prevent circular nesting or invalid moves
     public partial class MainWindow : Window
     {
+        // Drag drop related fields
+        private ConnectionTreeItem? _draggedItem = null;
+        private TreeViewItem? _lastDropTarget = null;
+        private ConnectionTreeItem? _dragSourceItem;
+        private Point _dragStartPoint;
+        private bool _isDragInitiated;
+
         // Constructor initializes the main window and sets up the data context
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainWindowViewModel();
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            DragDrop.SetAllowDrop(ConnectionsTreeView, true);
+            ConnectionsTreeView.AddHandler(DragDrop.DragOverEvent, TreeView_DragOver, RoutingStrategies.Tunnel);
+            ConnectionsTreeView.AddHandler(DragDrop.DropEvent, TreeView_Drop, RoutingStrategies.Tunnel);
+
+
             this.Closing += OnWindowClosing;
         }
         // Event handler for when the window is opened
@@ -64,10 +88,17 @@ namespace Converge.Views
                 await vm.LoadConnectionsAsync(db);
             }
 
+            // Setup caret suppression for empty folders
+            var treeView = this.FindControl<TreeView>("ConnectionsTreeView");
+            treeView.AddHandler(InputElement.PointerPressedEvent, TreeView_PointerPressed, RoutingStrategies.Tunnel);
+
             var grid = this.FindControl<Grid>("MainLayoutGrid");
             var leftColumn = grid.ColumnDefinitions[0];
 
-            
+            var ConnectionsTreeView = this.FindControl<TreeView>("ConnectionsTreeView");
+            ConnectionsTreeView.PointerPressed += TreeView_PointerPressed;
+            ConnectionsTreeView.PointerMoved += TreeView_PointerMoved;
+
 
             double lastKnownWidth = -1;
 
@@ -451,6 +482,125 @@ namespace Converge.Views
 
             await dialog.ShowDialog(this);
             return await tcs.Task;
+        }
+        private void TreeView_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                _dragStartPoint = e.GetPosition(this);
+                _isDragInitiated = true;
+            }
+        }
+        private void TreeView_PointerMoved(object? sender, PointerEventArgs e)
+        {
+            if (!_isDragInitiated) return;
+
+            var position = e.GetPosition(this);
+            var diff = position - _dragStartPoint;
+
+            if (Math.Abs(diff.X) > 5 || Math.Abs(diff.Y) > 5)
+            {
+                if (sender is TreeView treeView && e.Source is Control source &&
+                    source.DataContext is ConnectionTreeItem item)
+                {
+                    Debug.WriteLine($"Initiating drag for item: {item.Name}");
+
+                    _draggedItem = item;
+                    var dragData = new DataObject();
+                    dragData.Set("treeItem", item);
+                    DragDrop.DoDragDrop(e, dragData, DragDropEffects.Move);
+                    _isDragInitiated = false;
+                }
+            }
+        }
+
+        //private async void TreeView_Drop(object? sender, DragEventArgs e)
+        //{
+        //    if (!e.Data.Contains("treeItem"))
+        //        return;
+
+        //    if ((e.Source as Control)?.DataContext is not ConnectionTreeItem targetItem)
+        //        return;
+
+        //    if (_draggedItem == null || ReferenceEquals(_draggedItem, targetItem))
+        //        return;
+
+        //    var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+        //    var vm = DataContext as MainWindowViewModel;
+
+        //    // Prevent invalid nesting (e.g., connection under connection, circular reference)
+        //    if (_draggedItem.Connection != null && targetItem.Connection != null)
+        //        return;
+
+        //    if (_draggedItem.FolderId == targetItem.FolderId && _draggedItem.Order < targetItem.Order)
+        //        return;
+
+        //    try
+        //    {
+        //        if (_draggedItem.FolderId != targetItem.FolderId)
+        //        {
+        //            if (_draggedItem.Connection != null)
+        //            {
+        //                var conn = await db.Connections.FindAsync(_draggedItem.Id);
+        //                if (conn != null)
+        //                    conn.FolderId = targetItem.FolderId;
+        //            }
+        //            else
+        //            {
+        //                var folder = await db.Folders.FindAsync(_draggedItem.Id);
+        //                if (folder != null)
+        //                    folder.ParentId = targetItem.FolderId;
+        //            }
+
+        //            await db.SaveChangesAsync();
+        //            await vm!.LoadConnectionsAsync(db);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await MessageBox($"Drop error: {ex.Message}");
+        //    }
+        //}
+
+        private async void TreeView_Drop(object? sender, DragEventArgs e)
+        {
+            Debug.WriteLine("DROP EVENT FIRED");
+
+            if (!e.Data.Contains("treeItem"))
+            {
+                Debug.WriteLine("Drop failed: treeItem missing in data");
+                return;
+            }
+
+            var droppedItem = e.Data.Get("treeItem") as ConnectionTreeItem;
+            if (droppedItem == null)
+            {
+                Debug.WriteLine("Drop failed: droppedItem is null");
+                return;
+            }
+
+            var sourceControl = e.Source as IControl;
+            var targetItem = (sourceControl as Control)?.DataContext as ConnectionTreeItem;
+
+            Debug.WriteLine($"Drop: DraggedItem = {droppedItem.Name}, TargetItem = {targetItem?.Name}");
+
+            // TODO: Add movement logic
+        }
+
+        private void TreeView_DragOver(object? sender, DragEventArgs e)
+        {
+            Debug.WriteLine("DragOver event triggered.");
+
+            if (e.Data.Contains("treeItem"))
+            {
+                e.DragEffects = DragDropEffects.Move;
+                e.Handled = true;
+                Debug.WriteLine("treeItem detected in drag data.");
+            }
+            else
+            {
+                Debug.WriteLine("No treeItem in drag data.");
+            }
         }
 
     }
