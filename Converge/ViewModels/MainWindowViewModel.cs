@@ -88,8 +88,11 @@ public partial class MainWindowViewModel : ObservableObject
     {
         var node = new ConnectionTreeItem
         {
-            Name = folder.Name
+            Name = folder.Name,
+            FolderId = folder.Id,
+            Children = new ObservableCollection<ConnectionTreeItem>() // Ensure initialized
         };
+
 
         var childFolders = allFolders.Where(f => f.ParentId == folder.Id).OrderBy(f => f.Order);
         foreach (var child in childFolders)

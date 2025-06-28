@@ -15,18 +15,27 @@
 			<MenuItem Header="_File">
 				<MenuItem Header="New Connection" ToolTip.Tip="Create a new SSH, RDP, or VNC connection."
                           Click="NewConnection_Click"/>
-				<MenuItem Header="Edit Connection" ToolTip.Tip="Edit the selected connection."
+				<MenuItem Header="Edit _Connection" ToolTip.Tip="Edit the selected connection."
                           Click="EditConnection_Click"/>
+				<MenuItem Header="Duplicate Connection" ToolTip.Tip="Duplicate the selected connection."/>
+				<MenuItem Header="Delete Connection" ToolTip.Tip="Remove the selected connection." Click="DeleteConnection_Click"/>
 				<Separator/>
+				
 				<MenuItem Header="Connect" ToolTip.Tip="Connect to the selected host."/>
 				<MenuItem Header="Disconnect" ToolTip.Tip="Disconnect the active session."/>
 				<Separator/>
 				<MenuItem Header="Create Folder" ToolTip.Tip="Create a new folder." Click="CreateFolder_Click"/>
 				<MenuItem Header="Delete Folder" ToolTip.Tip="Delete the selected folder." Click="DeleteFolder_Click"/>
+				
 				<Separator/>
-				<MenuItem Header="Change Password" ToolTip.Tip="Change you Encyption Password" Click="ChangePasswordMenuItem_Click"/>
+				<MenuItem Header="Change _Password" ToolTip.Tip="Change you Encyption Password" Click="ChangePasswordMenuItem_Click"/>
 				<Separator/>
 				<MenuItem Header="Close" ToolTip.Tip="Close the application." Click="CloseApplicationMenuItem_Click"/>
+			</MenuItem>
+			<MenuItem Header="_Edit">
+				<MenuItem Header="Cut" ToolTip.Tip="Cut selected text" Click="Cut_Click" InputGesture="Ctrl+X"/>
+				<MenuItem Header="Copy" ToolTip.Tip="Copy selected text" Click="Copy_Click" InputGesture="Ctrl+C"/>
+				<MenuItem Header="Paste" ToolTip.Tip="Paste from clipboard" Click="Paste_Click" InputGesture="Ctrl+V"/>
 			</MenuItem>
 			<MenuItem Header="_Help">
 				<MenuItem Header="About" ToolTip.Tip="About this application."/>
@@ -42,6 +51,13 @@
 					<TextBlock Text="New"/>
 				</StackPanel>
 			</Button>
+			<Button ToolTip.Tip="Delete the selected connection" Click="DeleteConnection_Click">
+				<StackPanel Orientation="Horizontal" Spacing="4">
+					<TextBlock Text="🗑"/>
+					<TextBlock Text="Delete"/>
+				</StackPanel>
+			</Button>
+
 			<Button ToolTip.Tip="Edit the selected connection" Click="EditConnection_Click">
 				<StackPanel Orientation="Horizontal" Spacing="4">
 					<TextBlock Text="✎"/>
@@ -108,17 +124,26 @@
 				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 					<TreeView ItemsSource="{Binding ConnectionTreeItems}"
 							  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+							  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 							  Margin="4">
 						<TreeView.ItemTemplate>
 							<TreeDataTemplate DataType="local:ConnectionTreeItem" ItemsSource="{Binding Children}">
-								<Border Padding="0,0,0,0" Height="28" VerticalAlignment="Center">
+								<StackPanel Orientation="Horizontal" Margin="0" Spacing="4" VerticalAlignment="Center">
+									<!--<Image Width="16" Height="16"
+									   Source="avares://Converge/Assets/folder.png"
+									   Margin="4"/>-->
+
+									<Image Width="16" Height="16"
+										   VerticalAlignment="Center"
+										   Source="{Binding Connection, Converter={StaticResource IconSelectorConverter}}" />
 									<TextBlock Text="{Binding Name}"
-											   TextTrimming="CharacterEllipsis"
-											   TextWrapping="NoWrap"
 											   VerticalAlignment="Center"
-											   MaxWidth="{Binding RelativeSource={RelativeSource AncestorType=TreeView}, Path=ActualWidth}" />
-								</Border>
+											   TextTrimming="CharacterEllipsis" />
+								</StackPanel>
 							</TreeDataTemplate>
+
+
+
 						</TreeView.ItemTemplate>
 					</TreeView>
 				</ScrollViewer>

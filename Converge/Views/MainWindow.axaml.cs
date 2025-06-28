@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Platform;
 using Avalonia.Reactive;
 using Converge.Data;
@@ -18,6 +19,7 @@ namespace Converge.Views
 {
     public partial class MainWindow : Window
     {
+        // Constructor initializes the main window and sets up the data context
         public MainWindow()
         {
             InitializeComponent();
@@ -25,7 +27,7 @@ namespace Converge.Views
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.Closing += OnWindowClosing;
         }
-
+        // Event handler for when the window is opened
         protected override async void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
@@ -90,7 +92,7 @@ namespace Converge.Views
                 }
             };
         }
-
+        // Method to re-encrypt stored connection passwords with a new password
         private async Task ReencryptStoredConnectionPasswordsAsync(string oldPassword, string newPassword)
         {
             var db = Program.Services.GetRequiredService<ConvergeDbContext>();
@@ -136,7 +138,7 @@ namespace Converge.Views
 
             CryptoVault.Key = newKey;
         }
-
+        // Event handler for the "New Connection" menu item
         private async void NewConnection_Click(object? sender, RoutedEventArgs e)
         {
             var editor = new ConnectionEditorWindow();
@@ -146,16 +148,19 @@ namespace Converge.Views
             {
                 result.LastUpdated = DateTime.UtcNow;
 
-                // Add to DB
+                if (vm.SelectedItem is { Connection: null, FolderId: not null } selectedFolder)
+                {
+                    result.FolderId = selectedFolder.FolderId;
+                }
+
                 var db = Program.Services.GetRequiredService<ConvergeDbContext>();
                 db.Connections.Add(result);
                 await db.SaveChangesAsync();
 
-                // Refresh Tree
                 await vm.LoadConnectionsAsync(db);
             }
         }
-
+        // Event handler for the "Edit Connection" menu item
         private async void EditConnection_Click(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainWindowViewModel vm &&
@@ -177,44 +182,39 @@ namespace Converge.Views
                 }
             }
         }
+        // TODO: Replace individual DeleteConnection_Click and DeleteFolder_Click with a unified DeleteSelectedItem_Click method
+        //       that checks the SelectedItem context and performs the appropriate deletion.
 
+        // Event handler for the "Delete Connection" menu item
+        private async void DeleteConnection_Click(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel vm || vm.SelectedItem?.Connection is not Connection conn)
+                return;
+
+            var confirm = await MessageBoxConfirm($"Delete connection '{conn.Name}'?");
+            if (!confirm) return;
+
+            var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+            db.Connections.Remove(conn);
+            await db.SaveChangesAsync();
+
+            await vm.LoadConnectionsAsync(db);
+        }
+        // Event handler for the "Close" menu item
         private void CloseApplicationMenuItem_Click(object? sender, RoutedEventArgs e)
         {
             this.Close();
         }
-
+        // Event handler for the "Change Password" menu item
         private async void ChangePasswordMenuItem_Click(object? sender, RoutedEventArgs e)
         {
-            // Ensure the database context is available
-            var db = Program.Services.GetRequiredService<ConvergeDbContext>();
-            var saltSetting = db.SiteSettings.FirstOrDefault(s => s.Key == "EncryptionSalt");
-            // If no salt setting exists, prompt the user to create a new password
-            if (saltSetting == null)
-            {
-                await MessageBox("Encryption salt not found. Cannot change password.");
-                return;
-            }
-            // Prompt the user for the old password if it exists
             var changeWindow = new CreatePasswordWindow(requireOldPassword: true);
             var result = await changeWindow.ShowDialog<bool?>(this);
-            // If the user cancels or doesn't enter a password, exit
-            if (result != true || string.IsNullOrWhiteSpace(changeWindow.EnteredPassword))
-                return;
-            // Verify the old password
-            var newSalt = CryptoUtils.GenerateSalt();
-            db.SiteSettings.Remove(saltSetting);
-            db.SiteSettings.Add(new SiteSetting { Key = "EncryptionSalt", Value = newSalt });
-            // Encrypt a test value to verify the new password
-            var testValue = CryptoUtils.Encrypt("CONVERGE-TEST", CryptoUtils.DeriveKey(changeWindow.EnteredPassword, newSalt));
-            db.SiteSettings.Add(new SiteSetting { Key = "EncryptionCheck", Value = testValue });
-            db.SaveChanges();
-            // Reencrypt all stored connection passwords with the new password
-            await ReencryptStoredConnectionPasswordsAsync(changeWindow.OldPassword!, changeWindow.EnteredPassword!);
-            // Update the CryptoVault key with the new derived key
-            CryptoVault.Key = CryptoUtils.DeriveKey(changeWindow.EnteredPassword, newSalt);
-            await MessageBox("Password changed successfully.");
-        }
 
+            if (result == true)
+                await MessageBox("Password changed successfully.");
+        }
+        // Method to show a simple message box with a message
         private async Task MessageBox(string message)
         {
             var dialog = new Window
@@ -246,7 +246,7 @@ namespace Converge.Views
 
             await dialog.ShowDialog(this);
         }
-
+        // Method to verify or create the vault encryption settings
         private async Task<bool> VerifyOrCreateVaultAsync()
         {
             var db = Program.Services.GetRequiredService<ConvergeDbContext>();
@@ -275,28 +275,26 @@ namespace Converge.Views
             }
             else
             {
-                var enter = new EnterPasswordWindow();
-                var result = await enter.ShowDialog<bool?>(this);
+                var check = db.SiteSettings.FirstOrDefault(s => s.Key == "EncryptionCheck")?.Value;
 
-                if (result != true || string.IsNullOrWhiteSpace(enter.EnteredPassword))
+                while (true)
                 {
+                    var enter = new EnterPasswordWindow(saltSetting.Value, check ?? "");
+                    var result = await enter.ShowDialog<bool?>(this);
+
+                    if (result == true && !string.IsNullOrWhiteSpace(enter.EnteredPassword))
+                    {
+                        var derivedKey = CryptoUtils.DeriveKey(enter.EnteredPassword, saltSetting.Value);
+                        CryptoVault.Key = derivedKey;
+                        break;
+                    }
+
                     Environment.Exit(0);
                 }
-
-                var derivedKey = CryptoUtils.DeriveKey(enter.EnteredPassword, saltSetting.Value);
-
-                var check = db.SiteSettings.FirstOrDefault(s => s.Key == "EncryptionCheck");
-                if (check == null || CryptoUtils.Decrypt(check.Value, derivedKey) != "CONVERGE-TEST")
-                {
-                    Environment.Exit(0);
-                }
-
-                CryptoVault.Key = derivedKey;
             }
-
             return true;
         }
-
+        // Event handler for window closing to save the last pane width
         private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             if (DataContext is MainWindowViewModel vm)
@@ -317,20 +315,142 @@ namespace Converge.Views
                 db.SaveChanges();
             }
         }
-
+        // Event handler for the "Create Folder" menu item
         private void CreateFolder_Click(object? sender, RoutedEventArgs e)
         {
-            // TODO: Prompt for folder name and add to DB
+            _ = CreateNewFolderAsync();
         }
-
+        // Event handler for the "Delete Folder" menu item
         private void DeleteFolder_Click(object? sender, RoutedEventArgs e)
         {
-            // TODO: Confirm and delete selected folder
+            _ = DeleteSelectedFolderAsync();
         }
-
+        // Event handler for the "Filter" button click
         private void ClearFilter_Click(object? sender, RoutedEventArgs e)
         {
             this.FindControl<TextBox>("FilterBox").Text = string.Empty;
+        }
+        // Event handlers for Cut, Copy, and Paste actions (currently not implemented)
+        private void Cut_Click(object? sender, RoutedEventArgs e) { /* TODO Cut_Click */ }
+        private void Copy_Click(object? sender, RoutedEventArgs e) { /* TODO Copy_Click */ }
+        private void Paste_Click(object? sender, RoutedEventArgs e) { /* TODO Paste_Click */ }
+        // Event handler for the "New Folder" button click
+        private async Task CreateNewFolderAsync()
+        {
+            var prompt = new PromptDialog("Create Folder", "Enter folder name:");
+            var result = await prompt.ShowDialog<bool?>(this);
+
+            if (result != true || string.IsNullOrWhiteSpace(prompt.Result))
+                return;
+
+            var folderName = prompt.Result.Trim();
+
+            var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+            var vm = DataContext as MainWindowViewModel;
+
+            try
+            {
+                int? parentId = null;
+                if (vm?.SelectedItem is { Connection: null, FolderId: not null } selectedFolder)
+                {
+                    parentId = selectedFolder.FolderId;
+                }
+
+                var maxOrder = await db.Folders
+                    .Where(f => f.ParentId == parentId)
+                    .Select(f => (int?)f.Order)
+                    .MaxAsync() ?? 0;
+
+                var order = maxOrder + 1;
+
+                db.Folders.Add(new Folder
+                {
+                    Name = folderName,
+                    ParentId = parentId,
+                    Order = order
+                });
+
+                await db.SaveChangesAsync();
+                await vm!.LoadConnectionsAsync(db);
+            }
+            catch (Exception ex)
+            {
+                await MessageBox($"Error: {ex.Message}");
+            }
+        }
+        // Method to Delete and confirm deletion of a folder
+        private async Task DeleteSelectedFolderAsync()
+        {
+            var vm = DataContext as MainWindowViewModel;
+            if (vm?.SelectedItem is not { Connection: null } selectedFolder)
+                return;
+
+            var confirm = await MessageBoxConfirm($"Delete folder '{selectedFolder.Name}' and all contents?");
+            if (!confirm)
+                return;
+
+            var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+            if (selectedFolder.FolderId is null)
+                return;
+
+            var folder = await db.Folders
+                .Include(f => f.Children)
+                .Include(f => f.Connections)
+                .FirstOrDefaultAsync(f => f.Id == selectedFolder.FolderId);
+
+
+            if (folder == null)
+                return;
+
+            if (folder.Children.Any() || folder.Connections.Any())
+            {
+                db.Connections.RemoveRange(folder.Connections);
+                db.Folders.RemoveRange(folder.Children);
+            }
+
+            db.Folders.Remove(folder);
+            await db.SaveChangesAsync();
+
+            await vm.LoadConnectionsAsync(db);
+        }
+        // Method to show a confirmation message box
+        private async Task<bool> MessageBoxConfirm(string message)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+
+            var dialog = new Window
+            {
+                Width = 300,
+                Height = 140,
+                Title = "Confirm",
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            };
+
+            var yes = new Button { Content = "Yes", Width = 80 };
+            var no = new Button { Content = "No", Width = 80 };
+
+            yes.Click += (_, _) => { tcs.SetResult(true); dialog.Close(); };
+            no.Click += (_, _) => { tcs.SetResult(false); dialog.Close(); };
+
+            dialog.Content = new StackPanel
+            {
+                Margin = new Thickness(20),
+                Spacing = 10,
+                Children =
+        {
+            new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
+            new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Spacing = 8,
+                Children = { yes, no }
+            }
+        }
+            };
+
+            await dialog.ShowDialog(this);
+            return await tcs.Task;
         }
 
     }

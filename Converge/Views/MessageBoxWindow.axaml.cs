@@ -3,6 +3,9 @@ using Avalonia.Interactivity;
 
 namespace Converge.Views
 {
+    // TODO: Investigate why MessageBoxWindow does not auto-resize correctly despite SizeToContent="WidthAndHeight".
+    //       May require forcing InvalidateMeasure() or delaying layout updates.
+
     public partial class MessageBoxWindow : Window
     {
         public MessageBoxWindow(string message)

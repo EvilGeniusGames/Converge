@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Converge.Views.MessageBoxWindow"
-        Width="320" Height="140"
+		SizeToContent="WidthAndHeight"
         Title="Notice"
         WindowStartupLocation="CenterOwner">
 
@@ -9,7 +9,7 @@
 		<TextBlock x:Name="MessageText" TextWrapping="Wrap"/>
 		<Button Content="OK"
                 HorizontalAlignment="Center"
-                Width="80"
+                Width="60"
                 IsDefault="True"
                 Click="Ok_Click"/>
 	</StackPanel>

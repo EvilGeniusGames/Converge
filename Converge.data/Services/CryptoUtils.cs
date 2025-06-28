@@ -41,20 +41,27 @@ namespace Converge.Data.Services
 
         public static string Decrypt(string encryptedText, byte[] key)
         {
-            var combined = Convert.FromBase64String(encryptedText);
-            var iv = new byte[16];
-            var cipher = new byte[combined.Length - iv.Length];
+            try
+            {
+                var combined = Convert.FromBase64String(encryptedText);
+                var iv = new byte[16];
+                var cipher = new byte[combined.Length - iv.Length];
 
-            Buffer.BlockCopy(combined, 0, iv, 0, iv.Length);
-            Buffer.BlockCopy(combined, iv.Length, cipher, 0, cipher.Length);
+                Buffer.BlockCopy(combined, 0, iv, 0, iv.Length);
+                Buffer.BlockCopy(combined, iv.Length, cipher, 0, cipher.Length);
 
-            using var aes = Aes.Create();
-            aes.Key = key;
-            aes.IV = iv;
+                using var aes = Aes.Create();
+                aes.Key = key;
+                aes.IV = iv;
 
-            using var decryptor = aes.CreateDecryptor();
-            var plainBytes = decryptor.TransformFinalBlock(cipher, 0, cipher.Length);
-            return Encoding.UTF8.GetString(plainBytes);
+                using var decryptor = aes.CreateDecryptor();
+                var plainBytes = decryptor.TransformFinalBlock(cipher, 0, cipher.Length);
+                return Encoding.UTF8.GetString(plainBytes);
+            }
+            catch (CryptographicException)
+            {
+                throw new InvalidOperationException("Decryption failed due to incorrect password or corrupted data.");
+            }
         }
     }
 }
