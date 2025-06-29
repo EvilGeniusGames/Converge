@@ -2,11 +2,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="https://github.com/avaloniaui/designer"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:dd="clr-namespace:Avalonia.Input;assembly=Avalonia.Base"
         xmlns:local="clr-namespace:Converge.Models"
         mc:Ignorable="d"
         x:Class="Converge.Views.MainWindow"
         Width="1280" Height="800"
         Title="Converge: Version 0.0.0 Release: 0.1 Alpha">
+
 
 	<DockPanel>
 
@@ -131,10 +133,11 @@
 
 						<TreeView.ItemTemplate>
 							<TreeDataTemplate DataType="local:ConnectionTreeItem" ItemsSource="{Binding Children}">
-								<StackPanel Orientation="Horizontal" Margin="0" Spacing="4" VerticalAlignment="Center">
-									<!--<Image Width="16" Height="16"
-									   Source="avares://Converge/Assets/folder.png"
-									   Margin="4"/>-->
+								<StackPanel
+									dd:DragDrop.AllowDrop="True"
+									dd:DragDrop.DragOver="TreeView_DragOver"
+									dd:DragDrop.Drop="TreeView_Drop"
+									Orientation="Horizontal" Margin="0" Spacing="4" VerticalAlignment="Center">
 
 									<Image Width="16" Height="16"
 										   VerticalAlignment="Center"
@@ -144,8 +147,6 @@
 											   TextTrimming="CharacterEllipsis" />
 								</StackPanel>
 							</TreeDataTemplate>
-
-
 
 						</TreeView.ItemTemplate>
 					</TreeView>

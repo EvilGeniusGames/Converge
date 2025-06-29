@@ -21,14 +21,6 @@ using System.Threading.Tasks;
 
 namespace Converge.Views
 {
-    // TODO: Implement drag-and-drop in the TreeView to support moving connections and folders.
-    //       - Enable AllowDrop on the TreeView control
-     //       - Track dragged item via PointerPressed or DragStart
-     //       - Handle Drop to detect target folder
-     //       - For connections: update FolderId and Order
-     //       - For folders: update ParentId and Order
-     //       - Save changes and refresh ConnectionTreeItems
-     //       - Prevent circular nesting or invalid moves
     public partial class MainWindow : Window
     {
         // Drag drop related fields
@@ -40,15 +32,11 @@ namespace Converge.Views
 
         // Constructor initializes the main window and sets up the data context
         public MainWindow()
-        {
+        {   
+            // Constructor for MainWindow
             InitializeComponent();
             DataContext = new MainWindowViewModel();
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            DragDrop.SetAllowDrop(ConnectionsTreeView, true);
-            ConnectionsTreeView.AddHandler(DragDrop.DragOverEvent, TreeView_DragOver, RoutingStrategies.Tunnel);
-            ConnectionsTreeView.AddHandler(DragDrop.DropEvent, TreeView_Drop, RoutingStrategies.Tunnel);
-
-
             this.Closing += OnWindowClosing;
         }
         // Event handler for when the window is opened
@@ -98,8 +86,7 @@ namespace Converge.Views
             var ConnectionsTreeView = this.FindControl<TreeView>("ConnectionsTreeView");
             ConnectionsTreeView.PointerPressed += TreeView_PointerPressed;
             ConnectionsTreeView.PointerMoved += TreeView_PointerMoved;
-
-
+            
             double lastKnownWidth = -1;
 
             grid.LayoutUpdated += (_, _) =>
@@ -215,7 +202,8 @@ namespace Converge.Views
         }
         // TODO: Replace individual DeleteConnection_Click and DeleteFolder_Click with a unified DeleteSelectedItem_Click method
         //       that checks the SelectedItem context and performs the appropriate deletion.
-
+        //       Should we? Will we make the interface more confusing?
+        
         // Event handler for the "Delete Connection" menu item
         private async void DeleteConnection_Click(object? sender, RoutedEventArgs e)
         {
@@ -232,7 +220,7 @@ namespace Converge.Views
             await vm.LoadConnectionsAsync(db);
         }
         // Event handler for the "Close" menu item
-        private void CloseApplicationMenuItem_Click(object? sender, RoutedEventArgs e)
+        private void CloseApplicationMenuItem_Click(object? senader, RoutedEventArgs e)
         {
             this.Close();
         }
@@ -487,7 +475,7 @@ namespace Converge.Views
         {
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
-                _dragStartPoint = e.GetPosition(this);
+                _dragStartPoint = e.GetPosition(sender as Visual);
                 _isDragInitiated = true;
             }
         }
@@ -495,7 +483,7 @@ namespace Converge.Views
         {
             if (!_isDragInitiated) return;
 
-            var position = e.GetPosition(this);
+            var position = e.GetPosition(sender as Visual);
             var diff = position - _dragStartPoint;
 
             if (Math.Abs(diff.X) > 5 || Math.Abs(diff.Y) > 5)
@@ -508,7 +496,16 @@ namespace Converge.Views
                     _draggedItem = item;
                     var dragData = new DataObject();
                     dragData.Set("treeItem", item);
+                    // TODO: Capture expanded state of all expanded TreeViewItems before drag-drop operation
+                    //       so it can be restored after connections/folders are reloaded.
+                    //       This is necessary because the TreeView will reset its state after items are added/removed.
+
+                    // TODO: [P1] If a connection is dropped onto another connection, move the dragged item
+                    //       into the target's folder (if needed) and set its Order to one less than the target.
+                    //       Reorder other items in the folder as necessary to maintain a clean sequence.
+
                     DragDrop.DoDragDrop(e, dragData, DragDropEffects.Move);
+                    Debug.WriteLine("DoDragDrop invoked.");
                     _isDragInitiated = false;
                 }
             }
@@ -579,12 +576,62 @@ namespace Converge.Views
                 return;
             }
 
-            var sourceControl = e.Source as IControl;
-            var targetItem = (sourceControl as Control)?.DataContext as ConnectionTreeItem;
+            ConnectionTreeItem? targetItem = null;
+            var point = e.GetPosition(this);
+            var hit = this.InputHitTest(point);
 
-            Debug.WriteLine($"Drop: DraggedItem = {droppedItem.Name}, TargetItem = {targetItem?.Name}");
+            while (hit is Visual visual)
+            {
+                if (visual is Control control && control.DataContext is ConnectionTreeItem ctx)
+                {
+                    targetItem = ctx;
+                    break;
+                }
 
-            // TODO: Add movement logic
+                hit = visual.GetVisualParent() as IInputElement;
+            }
+
+            Debug.WriteLine($"Drop: DraggedItem = {droppedItem.Name}, TargetItem = {targetItem?.Name ?? "[null]"}");
+
+            // Prevent self-drop
+            if (targetItem == null || ReferenceEquals(droppedItem, targetItem))
+                return;
+
+            // Prevent no-op drop (same location)
+            if (droppedItem.FolderId == targetItem.FolderId && droppedItem.Order == targetItem.Order)
+                return;
+
+            var db = Program.Services.GetRequiredService<ConvergeDbContext>();
+            var vm = DataContext as MainWindowViewModel;
+
+            try
+            {
+                if (droppedItem.Connection != null)
+                {
+                    var conn = await db.Connections.FindAsync(droppedItem.Id);
+                    if (conn != null)
+                    {
+                        conn.FolderId = targetItem.FolderId;
+                        conn.LastUpdated = DateTime.UtcNow;
+                    }
+                }
+                else
+                {
+                    var folder = await db.Folders.FindAsync(droppedItem.Id);
+                    if (folder != null)
+                    {
+                        folder.ParentId = targetItem.FolderId;
+                        folder.Name = folder.Name; // placeholder to trigger update
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                await vm!.LoadConnectionsAsync(db);
+            }
+            catch (Exception ex)
+            {
+                await MessageBox($"Drop error: {ex.Message}");
+            }
         }
 
         private void TreeView_DragOver(object? sender, DragEventArgs e)
