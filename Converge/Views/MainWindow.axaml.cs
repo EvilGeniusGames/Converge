@@ -350,9 +350,9 @@ namespace Converge.Views
             this.FindControl<TextBox>("FilterBox").Text = string.Empty;
         }
         // Event handlers for Cut, Copy, and Paste actions (currently not implemented)
-        private void Cut_Click(object? sender, RoutedEventArgs e) { /* TODO Cut_Click */ }
-        private void Copy_Click(object? sender, RoutedEventArgs e) { /* TODO Copy_Click */ }
-        private void Paste_Click(object? sender, RoutedEventArgs e) { /* TODO Paste_Click */ }
+        private void Cut_Click(object? sender, RoutedEventArgs e) { /* TODO: Cut_Click */ }
+        private void Copy_Click(object? sender, RoutedEventArgs e) { /* TODO: Copy_Click */ }
+        private void Paste_Click(object? sender, RoutedEventArgs e) { /* TODO: Paste_Click */ }
         // Event handler for the "New Folder" button click
         private async Task CreateNewFolderAsync()
         {
