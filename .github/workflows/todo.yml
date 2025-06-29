@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Force git history for full scan
         run: |
@@ -22,7 +22,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run TODO to Issue Action
-        uses: alstr/todo-to-issue-action@v4
+        uses: alstr/todo-to-issue-action@v5
         with:
           INSERT_ISSUE_URLS: true
 
