@@ -22,7 +22,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run TODO to Issue Action
-        uses: alstr/todo-to-issue-action@v5
+        uses: alstr/todo-to-issue-action@v4
         with:
           INSERT_ISSUE_URLS: true
 
