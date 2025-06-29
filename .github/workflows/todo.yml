@@ -20,6 +20,10 @@ jobs:
         run: |
           git fetch --unshallow || true
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      
+      - name: List TODOs for debug
+        run: |
+          grep -rIn --include=\*.cs "TODO" . || echo "No TODOs found"
 
       - name: Run TODO to Issue Action
         uses: alstr/todo-to-issue-action@v5
