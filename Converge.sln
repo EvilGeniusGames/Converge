@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 		LICENSE.txt = LICENSE.txt
 		readme.md = readme.md
+		.github\workflows\todo.yml = .github\workflows\todo.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Converge.Data", "Converge.data\Converge.Data.csproj", "{5559D658-AA92-4F05-84A6-1299DF7E8553}"
