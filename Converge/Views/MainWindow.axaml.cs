@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Org.BouncyCastle.Crmf;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,10 +30,14 @@ namespace Converge.Views
         private ConnectionTreeItem? _dragSourceItem;
         private Point _dragStartPoint;
         private bool _isDragInitiated;
+        // Store expanded node IDs to preserve expansion state across reloads
+        private HashSet<int> _expandedFolderIds = new();
+        private HashSet<int> _expandedConnectionIds = new();
+
 
         // Constructor initializes the main window and sets up the data context
         public MainWindow()
-        {   
+        {
             // Constructor for MainWindow
             InitializeComponent();
             DataContext = new MainWindowViewModel();
@@ -86,7 +91,7 @@ namespace Converge.Views
             var ConnectionsTreeView = this.FindControl<TreeView>("ConnectionsTreeView");
             ConnectionsTreeView.PointerPressed += TreeView_PointerPressed;
             ConnectionsTreeView.PointerMoved += TreeView_PointerMoved;
-            
+
             double lastKnownWidth = -1;
 
             grid.LayoutUpdated += (_, _) =>
@@ -174,8 +179,17 @@ namespace Converge.Views
                 var db = Program.Services.GetRequiredService<ConvergeDbContext>();
                 db.Connections.Add(result);
                 await db.SaveChangesAsync();
+                
+                // store treeview state
+                _expandedFolderIds.Clear();
+                _expandedConnectionIds.Clear();
+                var treeViewControl = this.FindControl<TreeView>("ConnectionsTreeView");
+                CaptureExpandedState(treeViewControl);
 
                 await vm.LoadConnectionsAsync(db);
+                // Restore treeview state
+                RestoreExpandedState(treeViewControl);
+
             }
         }
         // Event handler for the "Edit Connection" menu item
@@ -204,7 +218,7 @@ namespace Converge.Views
         // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/4
         //       that checks the SelectedItem context and performs the appropriate deletion.
         //       Should we? Will we make the interface more confusing?
-        
+
         // Event handler for the "Delete Connection" menu item
         private async void DeleteConnection_Click(object? sender, RoutedEventArgs e)
         {
@@ -218,7 +232,15 @@ namespace Converge.Views
             db.Connections.Remove(conn);
             await db.SaveChangesAsync();
 
+            _expandedFolderIds.Clear();
+            _expandedConnectionIds.Clear();
+            var treeViewControl = this.FindControl<TreeView>("ConnectionsTreeView");
+            CaptureExpandedState(treeViewControl);
+
             await vm.LoadConnectionsAsync(db);
+
+            RestoreExpandedState(treeViewControl);
+
         }
         // Event handler for the "Close" menu item
         private void CloseApplicationMenuItem_Click(object? senader, RoutedEventArgs e)
@@ -351,17 +373,20 @@ namespace Converge.Views
             this.FindControl<TextBox>("FilterBox").Text = string.Empty;
         }
         // Event handlers for Cut, Copy, and Paste actions (currently not implemented)
-        private void Cut_Click(object? sender, RoutedEventArgs e) {
+        private void Cut_Click(object? sender, RoutedEventArgs e)
+        {
             // TODO: Scafold Cut_Click code
             // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/7
             // This method should handle cutting the selected item(s) from the tree view
         }
-        private void Copy_Click(object? sender, RoutedEventArgs e) {
+        private void Copy_Click(object? sender, RoutedEventArgs e)
+        {
             // TODO: Scafold Copy_Click code
             // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/6
             // This method should handle copying the selected item(s) from the tree view
         }
-        private void Paste_Click(object? sender, RoutedEventArgs e) {
+        private void Paste_Click(object? sender, RoutedEventArgs e)
+        {
             // TODO: Scafold Paste_Click code
             // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/5
             // This method should handle pasting the cut/copied item(s) into the tree view
@@ -404,6 +429,9 @@ namespace Converge.Views
 
                 await db.SaveChangesAsync();
                 await vm!.LoadConnectionsAsync(db);
+                // Restore expanded state after reload
+                var treeViewControl = this.FindControl<TreeView>("ConnectionsTreeView");
+                RestoreExpandedState(treeViewControl);
             }
             catch (Exception ex)
             {
@@ -505,22 +533,20 @@ namespace Converge.Views
                     source.DataContext is ConnectionTreeItem item)
                 {
                     Debug.WriteLine($"Initiating drag for item: {item.Name}");
-
                     _draggedItem = item;
                     var dragData = new DataObject();
                     dragData.Set("treeItem", item);
-                    // TODO: Capture expanded state of all expanded TreeViewItems before drag-drop operation
-                    // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/3
-                    //       so it can be restored after connections/folders are reloaded.
-                    //       This is necessary because the TreeView will reset its state after items are added/removed.
-
+                    _expandedFolderIds.Clear();
+                    _expandedConnectionIds.Clear();
+                    var treeViewControl = this.FindControl<TreeView>("ConnectionsTreeView");
+                    CaptureExpandedState(treeViewControl);
                     DragDrop.DoDragDrop(e, dragData, DragDropEffects.Move);
                     Debug.WriteLine("DoDragDrop invoked.");
                     _isDragInitiated = false;
                 }
             }
         }
-
+        // Event handler for the TreeView's Drop event
         private async void TreeView_Drop(object? sender, DragEventArgs e)
         {
             Debug.WriteLine("DROP EVENT FIRED");
@@ -558,8 +584,8 @@ namespace Converge.Views
             if (targetItem == null || ReferenceEquals(droppedItem, targetItem))
                 return;
 
-            // Prevent invalid nesting: Only connections onto connections
-            if (droppedItem.Connection == null || targetItem.Connection == null)
+            // Only allow dragging connections
+            if (droppedItem.Connection == null)
                 return;
 
             var db = Program.Services.GetRequiredService<ConvergeDbContext>();
@@ -567,43 +593,70 @@ namespace Converge.Views
 
             try
             {
-                // Fetch both connection entities from DB
                 var conn = await db.Connections.FindAsync(droppedItem.Id);
-                var targetConn = await db.Connections.FindAsync(targetItem.Id);
-                if (conn == null || targetConn == null) return;
+                if (conn == null) return;
 
-                // Set folder to target's folder if not already there
-                if (conn.FolderId != targetConn.FolderId)
+                int? newFolderId = null;
+                int insertIndex = 0;
+
+                // Dropping onto a folder: move to this folder, append to end
+                if (targetItem.FolderId.HasValue)
                 {
-                    conn.FolderId = targetConn.FolderId;
+                    newFolderId = targetItem.FolderId;
+                    var siblings = db.Connections
+                        .Where(x => x.FolderId == newFolderId)
+                        .OrderBy(x => x.Order)
+                        .ToList();
+                    insertIndex = siblings.Count;
+                    // Remove from any previous folder list
+                    siblings.RemoveAll(x => x.Id == conn.Id);
+                    siblings.Insert(insertIndex, conn);
+
+                    // Assign folder and update order
+                    conn.FolderId = newFolderId;
+                    for (int i = 0; i < siblings.Count; i++)
+                        siblings[i].Order = i;
                 }
-
-                // Move to just before the target's order
-                var newOrder = Math.Max(0, targetConn.Order - 1);
-                conn.Order = newOrder;
-
-                // Fetch all connections in this folder, order by current Order
-                var siblings = db.Connections
-                    .Where(x => x.FolderId == conn.FolderId && x.Id != conn.Id)
-                    .OrderBy(x => x.Order)
-                    .ToList();
-
-                // Insert conn at the correct place, re-sequence
-                siblings.Insert(newOrder, conn);
-                for (int i = 0; i < siblings.Count; i++)
+                // Dropping onto a connection: move into same folder and above target
+                else if (targetItem.Connection != null)
                 {
-                    siblings[i].Order = i;
+                    newFolderId = targetItem.FolderId;
+                    var siblings = db.Connections
+                        .Where(x => x.FolderId == newFolderId)
+                        .OrderBy(x => x.Order)
+                        .ToList();
+
+                    // Remove from any previous folder list
+                    siblings.RemoveAll(x => x.Id == conn.Id);
+
+                    // Insert just before target connection
+                    int targetIndex = siblings.FindIndex(x => x.Id == targetItem.Connection.Id);
+                    if (targetIndex < 0) targetIndex = 0;
+                    siblings.Insert(targetIndex, conn);
+
+                    // Assign folder and update order
+                    conn.FolderId = newFolderId;
+                    for (int i = 0; i < siblings.Count; i++)
+                        siblings[i].Order = i;
+                }
+                else
+                {
+                    // Drop target not recognized, do nothing
+                    return;
                 }
 
                 await db.SaveChangesAsync();
                 await vm!.LoadConnectionsAsync(db);
+                var treeViewControl = this.FindControl<TreeView>("ConnectionsTreeView");
+                RestoreExpandedState(treeViewControl);
             }
             catch (Exception ex)
             {
                 await MessageBox($"Drop error: {ex.Message}");
             }
-        }
 
+        }
+        // Event handler for the TreeView's DragOver event
         private void TreeView_DragOver(object? sender, DragEventArgs e)
         {
             Debug.WriteLine("DragOver event triggered.");
@@ -617,6 +670,69 @@ namespace Converge.Views
             else
             {
                 Debug.WriteLine("No treeItem in drag data.");
+            }
+        }
+        // Recursively capture expanded items
+        private void CaptureExpandedState(ItemsControl? node)
+        {
+            if (node == null) return;
+
+            for (int i = 0; i < node.ItemCount; i++)
+            {
+                var tvi = node.ItemContainerGenerator.ContainerFromIndex(i) as TreeViewItem;
+                if (tvi == null) continue;
+
+                if (tvi.IsExpanded && tvi.DataContext is ConnectionTreeItem ctx)
+                {
+                    if (ctx.FolderId.HasValue)
+                        _expandedFolderIds.Add(ctx.FolderId.Value);
+                    else if (ctx.Connection != null)
+                        _expandedConnectionIds.Add(ctx.Connection.Id);
+                }
+                CaptureExpandedState(tvi);
+            }
+
+
+        }
+        // Recursively restore expanded state
+        private void RestoreExpandedState(ItemsControl? node)
+        {
+            // TODO: Refine this method to handle restoring expanded state with subfolders and connections
+            // currently it only checks the immediate children of the node
+            // needs to be able to traverse the entire tree structure
+            if (node == null) return;
+
+            // Helper function to check if this node or any descendant should be expanded
+            bool ShouldExpand(ConnectionTreeItem item)
+            {
+                if ((item.FolderId.HasValue && _expandedFolderIds.Contains(item.FolderId.Value)) ||
+                    (item.Connection != null && _expandedConnectionIds.Contains(item.Connection.Id)))
+                    return true;
+
+                if (item.Children != null)
+                {
+                    foreach (var child in item.Children)
+                    {
+                        if (ShouldExpand(child))
+                            return true;
+                    }
+                }
+                return false;
+            }
+
+            for (int i = 0; i < node.ItemCount; i++)
+            {
+                var tvi = node.ItemContainerGenerator.ContainerFromIndex(i) as TreeViewItem;
+                if (tvi == null) continue;
+
+                if (tvi.DataContext is ConnectionTreeItem currentItem)
+                {
+                    if (ShouldExpand(currentItem))
+                    {
+                        tvi.IsExpanded = true;
+                    }
+                    RestoreExpandedState(tvi);
+                }
             }
         }
 
