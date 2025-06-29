@@ -353,14 +353,17 @@ namespace Converge.Views
         // Event handlers for Cut, Copy, and Paste actions (currently not implemented)
         private void Cut_Click(object? sender, RoutedEventArgs e) {
             // TODO: Scafold Cut_Click code
+            // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/7
             // This method should handle cutting the selected item(s) from the tree view
         }
         private void Copy_Click(object? sender, RoutedEventArgs e) {
             // TODO: Scafold Copy_Click code
+            // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/6
             // This method should handle copying the selected item(s) from the tree view
         }
         private void Paste_Click(object? sender, RoutedEventArgs e) {
             // TODO: Scafold Paste_Click code
+            // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/5
             // This method should handle pasting the cut/copied item(s) into the tree view
         }
         // Event handler for the "New Folder" button click
