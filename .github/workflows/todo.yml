@@ -1,14 +1,9 @@
 name: Run TODO to Issue
 
 on:
-  workflow_dispatch:
-    inputs:
-      MANUAL_COMMIT_REF:
-        description: "The SHA of the commit to get the diff for"
-        required: true
-      MANUAL_BASE_REF:
-        description: "Optional base SHA to compare against"
-        required: false
+  push:
+    branches:
+      - main
 
 jobs:
   todo:
@@ -22,18 +17,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Force git history for full scan
-        run: |
-          git fetch --unshallow || true
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
       - name: Run TODO to Issue Action
         uses: alstr/todo-to-issue-action@v5
         with:
           INSERT_ISSUE_URLS: true
-        env:
-          MANUAL_COMMIT_REF: ${{ inputs.MANUAL_COMMIT_REF }}
-          MANUAL_BASE_REF: ${{ inputs.MANUAL_BASE_REF }}
 
       - name: Set Git user
         run: |
