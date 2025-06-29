@@ -514,65 +514,12 @@ namespace Converge.Views
                     //       so it can be restored after connections/folders are reloaded.
                     //       This is necessary because the TreeView will reset its state after items are added/removed.
 
-                    // TODO: If a connection is dropped onto another connection, move the dragged item
-                    // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/2
-                    //       into the target's folder (if needed) and set its Order to one less than the target.
-                    //       Reorder other items in the folder as necessary to maintain a clean sequence.
-
                     DragDrop.DoDragDrop(e, dragData, DragDropEffects.Move);
                     Debug.WriteLine("DoDragDrop invoked.");
                     _isDragInitiated = false;
                 }
             }
         }
-
-        //private async void TreeView_Drop(object? sender, DragEventArgs e)
-        //{
-        //    if (!e.Data.Contains("treeItem"))
-        //        return;
-
-        //    if ((e.Source as Control)?.DataContext is not ConnectionTreeItem targetItem)
-        //        return;
-
-        //    if (_draggedItem == null || ReferenceEquals(_draggedItem, targetItem))
-        //        return;
-
-        //    var db = Program.Services.GetRequiredService<ConvergeDbContext>();
-        //    var vm = DataContext as MainWindowViewModel;
-
-        //    // Prevent invalid nesting (e.g., connection under connection, circular reference)
-        //    if (_draggedItem.Connection != null && targetItem.Connection != null)
-        //        return;
-
-        //    if (_draggedItem.FolderId == targetItem.FolderId && _draggedItem.Order < targetItem.Order)
-        //        return;
-
-        //    try
-        //    {
-        //        if (_draggedItem.FolderId != targetItem.FolderId)
-        //        {
-        //            if (_draggedItem.Connection != null)
-        //            {
-        //                var conn = await db.Connections.FindAsync(_draggedItem.Id);
-        //                if (conn != null)
-        //                    conn.FolderId = targetItem.FolderId;
-        //            }
-        //            else
-        //            {
-        //                var folder = await db.Folders.FindAsync(_draggedItem.Id);
-        //                if (folder != null)
-        //                    folder.ParentId = targetItem.FolderId;
-        //            }
-
-        //            await db.SaveChangesAsync();
-        //            await vm!.LoadConnectionsAsync(db);
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await MessageBox($"Drop error: {ex.Message}");
-        //    }
-        //}
 
         private async void TreeView_Drop(object? sender, DragEventArgs e)
         {
@@ -602,7 +549,6 @@ namespace Converge.Views
                     targetItem = ctx;
                     break;
                 }
-
                 hit = visual.GetVisualParent() as IInputElement;
             }
 
@@ -612,8 +558,8 @@ namespace Converge.Views
             if (targetItem == null || ReferenceEquals(droppedItem, targetItem))
                 return;
 
-            // Prevent no-op drop (same location)
-            if (droppedItem.FolderId == targetItem.FolderId && droppedItem.Order == targetItem.Order)
+            // Prevent invalid nesting: Only connections onto connections
+            if (droppedItem.Connection == null || targetItem.Connection == null)
                 return;
 
             var db = Program.Services.GetRequiredService<ConvergeDbContext>();
@@ -621,23 +567,32 @@ namespace Converge.Views
 
             try
             {
-                if (droppedItem.Connection != null)
+                // Fetch both connection entities from DB
+                var conn = await db.Connections.FindAsync(droppedItem.Id);
+                var targetConn = await db.Connections.FindAsync(targetItem.Id);
+                if (conn == null || targetConn == null) return;
+
+                // Set folder to target's folder if not already there
+                if (conn.FolderId != targetConn.FolderId)
                 {
-                    var conn = await db.Connections.FindAsync(droppedItem.Id);
-                    if (conn != null)
-                    {
-                        conn.FolderId = targetItem.FolderId;
-                        conn.LastUpdated = DateTime.UtcNow;
-                    }
+                    conn.FolderId = targetConn.FolderId;
                 }
-                else
+
+                // Move to just before the target's order
+                var newOrder = Math.Max(0, targetConn.Order - 1);
+                conn.Order = newOrder;
+
+                // Fetch all connections in this folder, order by current Order
+                var siblings = db.Connections
+                    .Where(x => x.FolderId == conn.FolderId && x.Id != conn.Id)
+                    .OrderBy(x => x.Order)
+                    .ToList();
+
+                // Insert conn at the correct place, re-sequence
+                siblings.Insert(newOrder, conn);
+                for (int i = 0; i < siblings.Count; i++)
                 {
-                    var folder = await db.Folders.FindAsync(droppedItem.Id);
-                    if (folder != null)
-                    {
-                        folder.ParentId = targetItem.FolderId;
-                        folder.Name = folder.Name; // placeholder to trigger update
-                    }
+                    siblings[i].Order = i;
                 }
 
                 await db.SaveChangesAsync();
