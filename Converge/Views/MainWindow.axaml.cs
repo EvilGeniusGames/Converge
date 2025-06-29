@@ -698,6 +698,7 @@ namespace Converge.Views
         private void RestoreExpandedState(ItemsControl? node)
         {
             // TODO: Refine this method to handle restoring expanded state with subfolders and connections
+            // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/8
             // currently it only checks the immediate children of the node
             // needs to be able to traverse the entire tree structure
             if (node == null) return;
