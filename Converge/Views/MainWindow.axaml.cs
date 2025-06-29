@@ -500,7 +500,7 @@ namespace Converge.Views
                     //       so it can be restored after connections/folders are reloaded.
                     //       This is necessary because the TreeView will reset its state after items are added/removed.
 
-                    // TODO: [P1] If a connection is dropped onto another connection, move the dragged item
+                    // TODO: If a connection is dropped onto another connection, move the dragged item
                     //       into the target's folder (if needed) and set its Order to one less than the target.
                     //       Reorder other items in the folder as necessary to maintain a clean sequence.
 
