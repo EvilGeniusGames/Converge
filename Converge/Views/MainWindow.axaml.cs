@@ -201,6 +201,7 @@ namespace Converge.Views
             }
         }
         // TODO: Replace individual DeleteConnection_Click and DeleteFolder_Click with a unified DeleteSelectedItem_Click method
+        // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/4
         //       that checks the SelectedItem context and performs the appropriate deletion.
         //       Should we? Will we make the interface more confusing?
         
@@ -497,10 +498,12 @@ namespace Converge.Views
                     var dragData = new DataObject();
                     dragData.Set("treeItem", item);
                     // TODO: Capture expanded state of all expanded TreeViewItems before drag-drop operation
+                    // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/3
                     //       so it can be restored after connections/folders are reloaded.
                     //       This is necessary because the TreeView will reset its state after items are added/removed.
 
                     // TODO: If a connection is dropped onto another connection, move the dragged item
+                    // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/2
                     //       into the target's folder (if needed) and set its Order to one less than the target.
                     //       Reorder other items in the folder as necessary to maintain a clean sequence.
 
