@@ -214,12 +214,6 @@ namespace Converge.Views
                 }
             }
         }
-        // TODO: Replace individual DeleteConnection_Click and DeleteFolder_Click with a unified DeleteSelectedItem_Click method
-        // Issue URL: https://github.com/EvilGeniusGames/Converge/issues/4
-        //       that checks the SelectedItem context and performs the appropriate deletion.
-        //       Should we? Will we make the interface more confusing?
-
-        // Event handler for the "Delete Connection" menu item
         private async void DeleteConnection_Click(object? sender, RoutedEventArgs e)
         {
             if (DataContext is not MainWindowViewModel vm || vm.SelectedItem?.Connection is not Connection conn)

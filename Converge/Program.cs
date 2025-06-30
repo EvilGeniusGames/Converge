@@ -1,9 +1,10 @@
-﻿using System;
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using Converge.Data;
+using Converge.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace Converge
 {
@@ -18,6 +19,9 @@ namespace Converge
 
             services.AddDbContext<ConvergeDbContext>(options =>
                 options.UseSqlite("Data Source=converge.db"));
+
+            // Register ConnectionWindowManager as a singleton
+            services.AddSingleton<IConnectionWindowManager, Converge.Services.ConnectionWindowManager>();
 
             Services = services.BuildServiceProvider();
 
