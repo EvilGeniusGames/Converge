@@ -129,7 +129,8 @@
 							  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
 							  PointerPressed="TreeView_PointerPressed"
 							  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-							  Margin="4">
+							  Margin="4"
+							  DoubleTapped="ConnectionsTreeView_DoubleTapped">
 
 						<TreeView.ItemTemplate>
 							<TreeDataTemplate DataType="local:ConnectionTreeItem" ItemsSource="{Binding Children}">
@@ -163,7 +164,37 @@
                           HorizontalAlignment="Stretch"/>
 
 			<!-- Right panel -->
-			<TabControl x:Name="Connections" Grid.Column="2" Margin="4"/>
+			<TabControl x:Name="Connections"
+            Grid.Column="2"
+            Margin="4"
+            Items="{Binding TabManager.Tabs}">
+				<TabControl.ItemTemplate>
+					<DataTemplate>
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+
+							<!-- Popout (detach) button -->
+							<Button Content="↗"
+									Width="24"
+									Height="24"
+									Margin="4,0,0,0"
+									ToolTip.Tip="Pop out to window"
+									Command="{Binding DataContext.PopoutTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+									CommandParameter="{Binding}" />
+
+							<!-- Close button -->
+							<Button Content="✕"
+									Width="24"
+									Height="24"
+									Margin="2,0,0,0"
+									ToolTip.Tip="Close"
+									Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+									CommandParameter="{Binding}" />
+						</StackPanel>
+					</DataTemplate>
+				</TabControl.ItemTemplate>
+
+			</TabControl>
 		</Grid>
 
 	</DockPanel>

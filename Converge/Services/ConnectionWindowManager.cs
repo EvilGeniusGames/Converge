@@ -1,35 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using Converge.Models;
 
 namespace Converge.Services
 {
     public class ConnectionWindowManager : IConnectionWindowManager
     {
-        // Public read-only access to the connection registry
-        public IReadOnlyDictionary<Guid, ActiveConnection> ActiveConnections => _activeConnections;
+        public ObservableCollection<ActiveConnection> ActiveConnections { get; } = new();
 
-        // Internal storage for active connections
-        private readonly Dictionary<Guid, ActiveConnection> _activeConnections;
-
-        public ConnectionWindowManager()
-        {
-            _activeConnections = new Dictionary<Guid, ActiveConnection>();
-        }
-
-        // Example method to add a connection
         public void AddConnection(ActiveConnection connection)
         {
-            if (connection != null && !_activeConnections.ContainsKey(connection.Id))
+            if (connection != null && !ActiveConnections.Any(c => c.Id == connection.Id))
             {
-                _activeConnections[connection.Id] = connection;
+                ActiveConnections.Add(connection);
             }
         }
 
-        // Example method to remove a connection
         public void RemoveConnection(Guid id)
         {
-            _activeConnections.Remove(id);
+            var conn = ActiveConnections.FirstOrDefault(c => c.Id == id);
+            if (conn != null)
+            {
+                ActiveConnections.Remove(conn);
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using Converge.Data;
 using Converge.Data.Services;
 using Converge.Models;
+using Converge.Services;
 using Converge.ViewModels;
 using Converge.Views;
 using Microsoft.EntityFrameworkCore;
@@ -728,6 +729,30 @@ namespace Converge.Views
                     }
                     RestoreExpandedState(tvi);
                 }
+            }
+        }
+        // Event handler for double-clicking a connection in the TreeView
+        private void ConnectionsTreeView_DoubleTapped(object? sender, RoutedEventArgs e)
+        {
+            // Get the selected item (connection) from the TreeView
+            if (ConnectionsTreeView.SelectedItem is ConnectionTreeItem selected &&
+                selected.Connection is Connection conn)
+            {
+                var manager = Program.Services.GetRequiredService<IConnectionWindowManager>();
+
+                // Create a new ActiveConnection instance
+                var active = new ActiveConnection
+                {
+                    Id = Guid.NewGuid(),
+                    Name = conn.Name,
+                    Protocol = conn.Protocol,
+                    // Set additional properties as needed, e.g.:
+                    // ViewState = ...,
+                    // Any credentials, etc.
+                };
+
+                manager.AddConnection(active);
+                // Optionally: open a new tab/window to show the connection
             }
         }
 

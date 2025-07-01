@@ -8,14 +8,14 @@
 
 ## Getting Started
 
-### 🔑 Unlocking the App
+### Unlocking the App
 - On launch, Converge prompts for your **master password**.
 - This password decrypts any saved credentials.
 - If no password has been set yet, you will be prompted to create one.
 
 ---
 
-## 🔌 Managing Connections
+## Managing Connections
 
 ### Add a New Connection
 1. Click **File → New Connection**.
@@ -41,7 +41,7 @@
 
 ---
 
-## 📂 Folder Management
+## Folder Management
 
 - Connections are organized into **folders**.
 - Right-click the folder tree to:
@@ -51,7 +51,7 @@
 
 ---
 
-## 🔐 Password Management
+## Password Management
 
 - To change your master password, go to **File → Change Master Password**.
 - Old password is required to authorize the change.
@@ -59,14 +59,14 @@
 
 ---
 
-## 🧳 Launching Connections
+##  Launching Connections
 
 - Double-click any connection or select it and click **Connect**.
 - The connection will open in a **new tab** in the main window.
 
 ---
 
-## 🗔 Window Management
+## Window Management
 
 - Tabs can be **detached into windows** for multi-monitor use.
 - Each detached window maintains its own full-screen toggle.
@@ -81,7 +81,7 @@
 
 ---
 
-## 🖋 Appearance Settings
+## Appearance Settings
 
 - Global font size, scaling, and colors are centrally managed.
 - Each connection can override appearance settings via per-connection config (planned).
@@ -89,7 +89,7 @@
 
 ---
 
-## 🔄 Saving & Persistence
+##  Saving & Persistence
 
 - Connections and folders are stored in a local **SQLite** database.
 - All sensitive data is encrypted using the master password.
